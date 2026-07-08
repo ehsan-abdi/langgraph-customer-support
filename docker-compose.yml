@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  ai_customer_support:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Mount the local SQLite database to persist ticketing data
+      - ./data/tickets.db:/app/data/tickets.db
+      # Mount the Qdrant local storage to persist embeddings
+      - ./db/qdrant_storage:/app/db/qdrant_storage
+    restart: unless-stopped

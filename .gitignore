@@ -1,0 +1,35 @@
+# --- Environment & Secrets ---
+.env
+.env.*
+*.pem
+*.key
+
+# --- Internal Tests & Data (Excluded per requirements) ---
+data/
+tests/
+test_*.py
+scratch/
+db/qdrant_storage/
+
+# --- Logs & OS Files ---
+*.log
+.DS_Store
+Thumbs.db
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# --- Node / Frontend (`web/`) ---
+node_modules/
+web/node_modules/
+web/dist/
+*.local

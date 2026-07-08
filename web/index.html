@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>web</title>
+  </head>
+  <body>
+    <script>
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('ResizeObserver')) return;
+        document.body.innerHTML += '<div style="color:red; font-weight:bold; font-size:24px; z-index:99999; position:absolute; top:0; left:0; width:100%; background:black; padding:20px;">BROWSER ERROR: ' + e.message + '<br><pre style="font-size:14px; margin-top:10px;">' + (e.error ? e.error.stack : '') + '</pre></div>';
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        document.body.innerHTML += '<div style="color:red; font-weight:bold; font-size:24px; z-index:99999; position:absolute; top:0; left:0; width:100%; background:black; padding:20px;">PROMISE REJECTION: ' + e.reason + '</div>';
+      });
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

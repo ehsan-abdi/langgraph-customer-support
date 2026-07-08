@@ -1,0 +1,71 @@
+flowchart TD
+    %% Styling Definitions
+    classDef default fill:#1e293b,stroke:#334155,stroke-width:2px,color:#f8fafc,rx:8px,ry:8px
+    classDef hitl fill:#7c3aed,stroke:#5b21b6,stroke-width:2px,color:#ffffff,font-weight:bold,rx:8px,ry:8px
+    classDef conditional fill:#334155,stroke:#64748b,stroke-width:2px,color:#f8fafc,stroke-dasharray: 4 4
+    classDef startEnd fill:#059669,stroke:#047857,stroke-width:2px,color:#ffffff,font-weight:bold
+
+    %% Core Nodes
+    Start(((START))) ::: startEnd
+    End(((END))) ::: startEnd
+    
+    Ingestion[Ingestion Agent\n<small>Anonymizes & parses data</small>]
+    Triage[Triage Agent\n<small>Determines priority & routing</small>]
+    Investigation[Investigation Agent\n<small>Queries DB & builds context</small>]
+    Action[Action Agent\n<small>Executes DB mutations</small>]
+    Response[Response Agent\n<small>Drafts customer reply</small>]
+    Validation[Validation Agent\n<small>Verifies reply & limits retries</small>]
+    Finalizer[Finalizer Node\n<small>Commits to Jira & Qdrant</small>]
+    
+    %% HITL Nodes (Hexagons for emphasis)
+    HITL_Manual{{HITL: Manual Resolution}} ::: hitl
+    HITL_Approve{{HITL: Approve Action}} ::: hitl
+    HITL_Review{{HITL: Final Review}} ::: hitl
+
+    %% Conditionals (Diamonds)
+    CondTriage{Priority Level?} ::: conditional
+    CondInvestigate{Action Required?} ::: conditional
+    CondApprove{Action Approved?} ::: conditional
+    CondValid{Validation Status?} ::: conditional
+    CondReview{Draft Approved?} ::: conditional
+
+    %% --- Edges & Routing ---
+    
+    %% Entry
+    Start --> Ingestion
+    Ingestion --> Triage
+    Triage --> CondTriage
+    
+    %% Triage Routing
+    CondTriage -- Urgent --> HITL_Manual
+    CondTriage -- Normal / High --> Investigation
+    
+    %% Investigation Routing
+    Investigation --> CondInvestigate
+    CondInvestigate -- Yes --> HITL_Approve
+    CondInvestigate -- No --> Response
+    
+    %% Action Approval Routing
+    HITL_Approve --> CondApprove
+    CondApprove -- Yes --> Action
+    CondApprove -- No --> HITL_Manual
+    
+    %% Response Generation
+    Action --> Response
+    Response --> Validation
+    Validation --> CondValid
+    
+    %% Validation Routing
+    CondValid -- "Invalid (< 3 Retries)" --> Investigation
+    CondValid -- "Invalid (Max Retries)" --> HITL_Manual
+    CondValid -- "Valid (High Priority)" --> HITL_Review
+    CondValid -- "Valid (Normal Priority)" --> Finalizer
+    
+    %% Final Review Routing
+    HITL_Review --> CondReview
+    CondReview -- Yes --> Finalizer
+    CondReview -- No --> HITL_Manual
+    
+    %% Resolution Convergence
+    HITL_Manual --> Finalizer
+    Finalizer --> End
