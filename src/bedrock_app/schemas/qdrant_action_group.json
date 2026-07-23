@@ -1,0 +1,94 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Qdrant Search Action Group",
+    "description": "Provides semantic search over Aura Bank's historical support tickets and internal Confluence knowledge base.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/search_historical_tickets": {
+      "post": {
+        "summary": "Search historical support tickets",
+        "description": "Searches 10,000+ historical Aura Bank support tickets using semantic similarity. Use this to find how similar past issues were resolved, identify patterns, or retrieve precedents for the current customer issue.",
+        "operationId": "search_historical_tickets",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "A descriptive search query summarising the customer's issue. Be specific — include the issue type, product category, and any key details (e.g. 'unauthorized card transaction refund request checking account')."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Top matching historical tickets with relevance scores and content snippets.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string",
+                      "description": "Formatted list of matching historical tickets."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search_confluence_kb": {
+      "post": {
+        "summary": "Search internal Confluence knowledge base",
+        "description": "Searches Aura Bank's internal Confluence knowledge base for policies, procedures, product information, and operational guidelines. Use this to look up standard procedures, fee structures, policy details, or resolution guidelines for a customer's issue.",
+        "operationId": "search_confluence_kb",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "A descriptive search query for the policy or procedure you need. Be specific (e.g. 'billing refund policy process for failed direct debit')."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Top matching Confluence documents with titles and content excerpts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string",
+                      "description": "Formatted list of matching knowledge base documents."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

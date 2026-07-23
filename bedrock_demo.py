@@ -153,6 +153,18 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 /* Sidebar labels */
 .sidebar-section { color: #e8c84a; font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.8px; margin: 16px 0 8px 0; }
 .sidebar-text { color: #7a9cc4; font-size: 0.85rem; line-height: 1.5; }
+
+/* Section headers — gold left border, no emoji */
+h3 {
+    color: #c8d6ea !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    padding-left: 14px !important;
+    border-left: 3px solid #e8c84a !important;
+    margin: 28px 0 14px 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -264,30 +276,27 @@ def priority_badge(priority: str) -> str:
 
 def critical_pill(is_critical: bool) -> str:
     if is_critical:
-        return '<span class="badge badge-urgent">⚠ Critical</span>'
-    return '<span class="badge badge-low">✓ Routine</span>'
+        return '<span class="badge badge-urgent">Critical</span>'
+    return '<span class="badge badge-low">Routine</span>'
 
 
 # ── Sample Tickets ─────────────────────────────────────────────────────────────
 SAMPLES = {
-    "🔴 Fraud — Unauthorized charge (CRITICAL)": (
-        "URGENT: I am Mark Watts. My account number is 31241890, sort code 20-45-14. "
-        "I have just noticed a fraudulent charge of £320.26 from Smith Group that I "
-        "absolutely did not authorise. Please investigate and refund this immediately."
+    "Unauthorized charge — Urgent": (
+        "URGENT: I have just noticed a fraudulent charge of £320 on my account that I did not "
+        "authorise. My account may be compromised. Mark Watts, account 31241890, sort code 20-45-14."
     ),
-    "🟠 Disputed payment — Account access issue (HIGH)": (
-        "I cannot access my online banking account. I've been locked out for 3 days "
-        "and I have an urgent payment to make. Account: 31241890, Name: Mark Watts. "
-        "This is causing me serious financial problems."
+    "Failed direct debit — High": (
+        "A direct debit of £150 to Utility Corp failed yesterday. Can you check my account 31241890 "
+        "and tell me what happened? I need to know if any fees were charged. Mark Watts, sort code 20-45-14."
     ),
-    "🟡 Statement request (NORMAL)": (
-        "Hi, could you please send me a copy of my last 3 months' bank statements? "
-        "My account number is 31241890, sort code 20-45-14. Name: Mark Watts. "
-        "I need these for a mortgage application."
+    "Transaction history request — Normal": (
+        "I would like to see all transactions over £50 on my account in the past 60 days. "
+        "Mark Watts, account 31241890, sort code 20-45-14."
     ),
-    "🟢 General enquiry (LOW)": (
-        "Hello, I'd like to know what the current interest rates are on your "
-        "easy-access savings accounts. I'm thinking of opening a new savings account."
+    "Account balance enquiry — Low": (
+        "Hi, I am Mark Watts, account 31241890, sort code 20-45-14. "
+        "What is my current available balance across all my accounts?"
     ),
 }
 
@@ -295,7 +304,7 @@ SAMPLES = {
 # ── Session State Init ─────────────────────────────────────────────────────────
 def init_state():
     defaults = {
-        "stage":        "input",   # input | triage_running | hitl_pending | resolving | done_auto | done_hitl | escalated
+        "stage":        "input",   # input | triage_running | hitl_pending | resolving | done_auto | done_hitl
         "ticket":       "",
         "triage":       None,
         "resolution":   "",
@@ -375,10 +384,10 @@ with st.sidebar:
         config = load_config()
         st.markdown(f"""
         <div class="sidebar-text">
-        🤖 Triage: <code>{config.get('triage_agent_id','—')}</code><br>
-        🤖 Resolution: <code>{config.get('resolution_agent_id','—')}</code><br>
-        🌊 Flow: <code>{config.get('flow_id','—')}</code><br>
-        🌍 Region: <code>eu-north-1</code>
+        Triage: <code>{config.get('triage_agent_id','—')}</code><br>
+        Resolution: <code>{config.get('resolution_agent_id','—')}</code><br>
+        Flow: <code>{config.get('flow_id','—')}</code><br>
+        Region: <code>eu-north-1</code>
         </div>
         """, unsafe_allow_html=True)
     except Exception:
@@ -397,7 +406,7 @@ with st.sidebar:
 # ── Main Content ───────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="aura-header">
-    <h1>🏦 Aura Bank — AI Support Demo</h1>
+    <h1>AURA BANK — AI Support Demo</h1>
     <p>Powered by Amazon Bedrock · Claude Sonnet 4.5 · Human-in-the-Loop</p>
 </div>
 """, unsafe_allow_html=True)
@@ -409,7 +418,7 @@ step_indicator()
 # STAGE: input
 # ══════════════════════════════════════════════════════════════════════════════
 if st.session_state.stage == "input":
-    st.markdown("### 📝 Submit a Customer Ticket")
+    st.markdown("### Submit a Customer Ticket")
     st.markdown('<p style="color:#6b7a99;font-size:0.9rem">Enter a support ticket below, or choose a sample from the sidebar.</p>', unsafe_allow_html=True)
 
     ticket = st.text_area(
@@ -422,7 +431,7 @@ if st.session_state.stage == "input":
 
     col1, col2 = st.columns([1, 4])
     with col1:
-        submit = st.button("🚀 Submit Ticket", type="primary", use_container_width=True)
+        submit = st.button("Submit", type="primary", use_container_width=True)
 
     if submit:
         if not ticket.strip():
@@ -437,7 +446,7 @@ if st.session_state.stage == "input":
 # STAGE: triage_running
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.stage == "triage_running":
-    st.markdown("### 🔍 Step 1 — Triage Agent")
+    st.markdown("### Step 1 — Triage Agent")
 
     with st.spinner("Classifying ticket with Triage Agent..."):
         triage_prompt = (
@@ -469,7 +478,7 @@ elif st.session_state.stage == "hitl_pending":
     priority = triage.get("priority", "Unknown")
 
     # Triage summary card
-    st.markdown("### 🔍 Step 1 — Triage Result")
+    st.markdown("### Step 1 — Triage Result")
     st.markdown(f"""
     <div class="card card-critical">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -485,11 +494,11 @@ elif st.session_state.stage == "hitl_pending":
     """, unsafe_allow_html=True)
 
     # HITL panel
-    st.markdown("### ⚠️ Step 2 — Human Review Required")
+    st.markdown("### Step 2 — Human Review Required")
     st.markdown(f"""
     <div class="card card-critical" style="margin-bottom:16px">
         <div style="color:#f87171;font-weight:600;margin-bottom:12px">
-            🚨 This ticket is classified as <strong>{priority.upper()}</strong> and requires your response.
+            This ticket is classified as <strong>{priority.upper()}</strong> and requires your response.
         </div>
         <div class="field-label">Original Ticket</div>
         <div class="ticket-box">{st.session_state.ticket}</div>
@@ -507,11 +516,9 @@ elif st.session_state.stage == "hitl_pending":
     )
     st.session_state.hitl_draft = hitl_text
 
-    col1, col2, col3 = st.columns([2, 2, 4])
+    col1, col2 = st.columns([2, 6])
     with col1:
-        submit_hitl = st.button("✅ Submit Resolution", type="primary", use_container_width=True)
-    with col2:
-        escalate = st.button("🚨 Escalate to Senior Team", use_container_width=True)
+        submit_hitl = st.button("Submit Resolution", type="primary", use_container_width=True)
 
     if submit_hitl:
         if not hitl_text.strip():
@@ -520,10 +527,6 @@ elif st.session_state.stage == "hitl_pending":
             st.session_state.resolution = hitl_text.strip()
             st.session_state.stage      = "done_hitl"
             st.rerun()
-
-    if escalate:
-        st.session_state.stage = "escalated"
-        st.rerun()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -534,7 +537,7 @@ elif st.session_state.stage == "resolving":
     priority = triage.get("priority", "Unknown")
 
     # Show triage result
-    st.markdown("### 🔍 Step 1 — Triage Result")
+    st.markdown("### Step 1 — Triage Result")
     st.markdown(f"""
     <div class="card">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -549,7 +552,7 @@ elif st.session_state.stage == "resolving":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### 🔧 Step 2 — Resolution Agent")
+    st.markdown("### Step 2 — Resolution Agent")
     with st.spinner("Resolution Agent investigating and resolving..."):
         resolution_raw = invoke_agent(
             config["resolution_agent_id"],
@@ -569,7 +572,7 @@ elif st.session_state.stage == "done_auto":
     triage   = st.session_state.triage
     priority = triage.get("priority", "Unknown")
 
-    st.markdown("### 🔍 Triage Result")
+    st.markdown("### Triage Result")
     st.markdown(f"""
     <div class="card">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -584,17 +587,17 @@ elif st.session_state.stage == "done_auto":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ✅ Resolution — Auto-resolved")
+    st.markdown("### Resolution — Auto-resolved")
     st.markdown(f"""
     <div class="card card-success">
         <div style="color:#4ade80;font-weight:600;margin-bottom:12px">
-            🤖 Resolution Agent responded automatically (no human review required)
+            Resolution Agent responded automatically
         </div>
         <div class="response-box">{st.session_state.resolution}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("🔄 Submit New Ticket", type="primary"):
+    if st.button("New Ticket", type="primary"):
         for k in ("stage","ticket","triage","resolution","hitl_draft"):
             del st.session_state[k]
         st.rerun()
@@ -607,7 +610,7 @@ elif st.session_state.stage == "done_hitl":
     triage   = st.session_state.triage
     priority = triage.get("priority", "Unknown")
 
-    st.markdown("### 🔍 Triage Result")
+    st.markdown("### Triage Result")
     st.markdown(f"""
     <div class="card card-critical">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
@@ -620,51 +623,18 @@ elif st.session_state.stage == "done_hitl":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### ✅ Resolution — Submitted by Human Reviewer")
+    st.markdown("### Resolution — Submitted by Human Reviewer")
     st.markdown(f"""
     <div class="card card-success">
         <div style="color:#4ade80;font-weight:600;margin-bottom:12px">
-            👤 Reviewed and resolved by human operator
+            Reviewed and resolved by human operator
         </div>
         <div class="response-box">{st.session_state.resolution}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    if st.button("🔄 Submit New Ticket", type="primary"):
+    if st.button("New Ticket", type="primary"):
         for k in ("stage","ticket","triage","resolution","hitl_draft"):
             del st.session_state[k]
         st.rerun()
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# STAGE: escalated
-# ══════════════════════════════════════════════════════════════════════════════
-elif st.session_state.stage == "escalated":
-    triage   = st.session_state.triage
-    priority = triage.get("priority", "Unknown")
-
-    st.markdown("### 🔍 Triage Result")
-    st.markdown(f"""
-    <div class="card card-critical">
-        <div style="display:flex;align-items:center;gap:10px;">
-            {priority_badge(priority)}
-            {critical_pill(True)}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("### 🚨 Escalated to Senior Team")
-    st.markdown(f"""
-    <div class="card card-escalated">
-        <div style="color:#f59e0b;font-weight:600;margin-bottom:10px">
-            🚨 This ticket has been escalated and will be reviewed by the senior support team.
-        </div>
-        <div class="field-label">Original Ticket</div>
-        <div class="ticket-box">{st.session_state.ticket}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if st.button("🔄 Submit New Ticket", type="primary"):
-        for k in ("stage","ticket","triage","resolution","hitl_draft"):
-            del st.session_state[k]
-        st.rerun()

@@ -170,13 +170,13 @@ Output EXACTLY this JSON structure:
 }
 
 Priority definitions:
-- Urgent: Active fraud, unauthorized transactions, compromised account, lost/stolen card.
-- High: Disputed charges, failed payments, account access issues affecting finances.
-- Normal: Statement requests, balance inquiries, product questions, account queries.
-- Low: Feedback, complaints about service quality, general greetings.
+- Urgent: Active fraud, unauthorized transactions in progress, compromised/stolen account, lost/stolen card needing immediate cancellation.
+- High: Disputed charges under investigation, failed payments, account access issues, potential (not confirmed) fraud.
+- Normal: Statement requests, balance inquiries, transaction history queries, product questions.
+- Low: Feedback, service quality complaints, general information requests, greetings.
 
-is_critical MUST be true for Urgent or High (requires human approval before any action).
-is_critical MUST be false for Normal or Low (can be auto-resolved without human review).
+is_critical MUST be true ONLY for Urgent priority (requires immediate human review).
+is_critical MUST be false for High, Normal, and Low (can be handled automatically).
 
 EXAMPLES — study these carefully:
 
@@ -218,6 +218,16 @@ Output:
   "is_critical": false,
   "summary": "Customer enquiring about current savings account interest rates.",
   "reasoning": "General product information request with no financial urgency or risk."
+}
+
+Input: "A direct debit of £150 to Utility Corp failed yesterday. Can you check my account and what happened?"
+Output:
+{
+  "priority": "High",
+  "department": "Billing",
+  "is_critical": false,
+  "summary": "Customer reports a failed £150 direct debit to Utility Corp and requests account investigation.",
+  "reasoning": "Failed payment is high priority but not an active security emergency — can be auto-resolved."
 }
 
 Now classify the ticket below. Output ONLY the JSON object — nothing else."""
