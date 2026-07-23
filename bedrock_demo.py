@@ -158,27 +158,52 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
 
 # ── AWS + Bedrock Config ───────────────────────────────────────────────────────
-@st.cache_resource
 def get_aws_creds() -> dict:
     """Returns AWS credentials from Streamlit secrets or environment."""
-    try:
-        return {
-            "aws_access_key_id":     st.secrets["AWS_ACCESS_KEY_ID"],
-            "aws_secret_access_key": st.secrets["AWS_SECRET_ACCESS_KEY"],
-            "region_name":           st.secrets.get("AWS_DEFAULT_REGION", "eu-north-1"),
-        }
-    except Exception:
-        return {
-            "aws_access_key_id":     os.getenv("AWS_ACCESS_KEY_ID"),
-            "aws_secret_access_key": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "region_name":           os.getenv("AWS_DEFAULT_REGION", "eu-north-1"),
-        }
+    # Try Streamlit secrets first (Streamlit Cloud)
+    key_id  = st.secrets.get("AWS_ACCESS_KEY_ID")     if hasattr(st, "secrets") else None
+    secret  = st.secrets.get("AWS_SECRET_ACCESS_KEY") if hasattr(st, "secrets") else None
+    region  = st.secrets.get("AWS_DEFAULT_REGION", "") if hasattr(st, "secrets") else ""
+    # Fall back to environment variables (local dev)
+    if not key_id:  key_id = os.getenv("AWS_ACCESS_KEY_ID", "")
+    if not secret:  secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    if not region:  region = os.getenv("AWS_DEFAULT_REGION", "eu-north-1")
+    return {"aws_access_key_id": key_id, "aws_secret_access_key": secret, "region_name": region}
 
 
-@st.cache_resource
-def get_bedrock_runtime():
+def check_credentials() -> tuple[bool, str]:
+    """
+    Verifies AWS credentials are present and valid by calling STS GetCallerIdentity.
+    Returns (ok: bool, message: str).
+    """
     creds = get_aws_creds()
-    return boto3.client("bedrock-agent-runtime", **creds)
+    if not creds["aws_access_key_id"] or not creds["aws_secret_access_key"]:
+        return False, (
+            "AWS credentials are missing.\n\n"
+            "On Streamlit Cloud: go to **Settings → Secrets** and add:\n"
+            "```toml\n"
+            "AWS_ACCESS_KEY_ID = \"AKIA...\"\n"
+            "AWS_SECRET_ACCESS_KEY = \"your_secret_key\"\n"
+            "AWS_DEFAULT_REGION = \"eu-north-1\"\n"
+            "```"
+        )
+    try:
+        sts = boto3.client("sts", **creds)
+        identity = sts.get_caller_identity()
+        acct = identity["Account"]
+        return True, f"✅ Connected — AWS account `{acct}`, region `{creds['region_name']}`"
+    except Exception as e:
+        code = getattr(e, 'response', {}).get('Error', {}).get('Code', type(e).__name__)
+        return False, (
+            f"AWS authentication failed (`{code}`).\n\n"
+            "Please check your **AWS_ACCESS_KEY_ID** and **AWS_SECRET_ACCESS_KEY** "
+            "in Streamlit Secrets are correct and not expired."
+        )
+
+
+def get_bedrock_runtime():
+    """Creates a fresh Bedrock runtime client from current credentials."""
+    return boto3.client("bedrock-agent-runtime", **get_aws_creds())
 
 
 @st.cache_data
@@ -191,13 +216,23 @@ def load_config() -> dict:
 
 def invoke_agent(agent_id: str, alias_id: str, text: str) -> str:
     """Invokes a Bedrock Agent and returns the full text response."""
+    from botocore.exceptions import ClientError
     runtime = get_bedrock_runtime()
-    resp = runtime.invoke_agent(
-        agentId=agent_id,
-        agentAliasId=alias_id,
-        sessionId=str(uuid.uuid4()),
-        inputText=text,
-    )
+    try:
+        resp = runtime.invoke_agent(
+            agentId=agent_id,
+            agentAliasId=alias_id,
+            sessionId=str(uuid.uuid4()),
+            inputText=text,
+        )
+    except ClientError as e:
+        code = e.response["Error"]["Code"]
+        msg  = e.response["Error"].get("Message", "")
+        raise RuntimeError(
+            f"Bedrock API error ({code}): {msg}\n\n"
+            "Check that your IAM user has **AmazonBedrockFullAccess** "
+            f"and that agent `{agent_id}` exists in region `{get_aws_creds()['region_name']}`."
+        ) from e
     chunks = []
     for event in resp["completion"]:
         if "chunk" in event:
@@ -327,6 +362,13 @@ with st.sidebar:
 
     st.markdown('<div class="sidebar-section">Pipeline</div>', unsafe_allow_html=True)
     st.code("Ticket\n  → Triage Agent\n  → is_critical?\n    YES → HITL (you)\n    NO  → Resolution Agent\n  → Response", language=None)
+
+    st.markdown('<div class="sidebar-section">AWS Connection</div>', unsafe_allow_html=True)
+    cred_ok, cred_msg = check_credentials()
+    if cred_ok:
+        st.success(cred_msg)
+    else:
+        st.error(cred_msg)
 
     st.markdown('<div class="sidebar-section">AWS Resources</div>', unsafe_allow_html=True)
     try:
