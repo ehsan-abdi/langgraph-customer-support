@@ -1,5 +1,0 @@
-# Aura Bank — Bedrock Demo
-# Minimal clean requirements for Streamlit Community Cloud deployment
-streamlit>=1.35.0
-boto3>=1.34.0
-python-dotenv>=1.0.0
