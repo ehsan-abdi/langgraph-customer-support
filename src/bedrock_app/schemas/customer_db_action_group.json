@@ -1,0 +1,168 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Aura Bank Customer Database Action Group",
+    "description": "Provides the Resolution Agent with read-only access to Aura Bank customer profiles, account balances, and recent transactions. Use these tools to investigate and verify a customer's claim before taking any action.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/get_customer_profile": {
+      "post": {
+        "summary": "Look up a customer profile by their identity details",
+        "description": "Looks up a customer profile using their full name, account number, and sort code. Returns the unique customer_id required for all subsequent tool calls. Returns an identity mismatch error if the details do not match — do NOT proceed with sensitive actions if this happens.",
+        "operationId": "get_customer_profile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["full_name", "account_number", "sort_code"],
+                "properties": {
+                  "full_name": {
+                    "type": "string",
+                    "description": "The customer's full name exactly as provided in the complaint (e.g. 'Jane Smith')."
+                  },
+                  "account_number": {
+                    "type": "string",
+                    "description": "The customer's 8-digit bank account number (digits only, no spaces or dashes)."
+                  },
+                  "sort_code": {
+                    "type": "string",
+                    "description": "The customer's 6-digit sort code (e.g. '20-00-00' or '200000')."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Customer profile found and identity verified.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "The unique customer_id (UUID). Pass this to get_account_balances."
+                    },
+                    "first_name": { "type": "string" },
+                    "last_name": { "type": "string" },
+                    "email": { "type": "string" },
+                    "error": {
+                      "type": "string",
+                      "description": "Present only if the identity check failed or account was not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_account_balances": {
+      "post": {
+        "summary": "Fetch all account balances for a verified customer",
+        "description": "Fetches all bank accounts (Current, Savings, Credit Cards, Mortgages) and their current balances for a given Aura Bank customer ID. Always call get_customer_profile first to obtain the customer_id. The account id (UUID) returned here is required for get_recent_transactions and financial actions.",
+        "operationId": "get_account_balances",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["customer_id"],
+                "properties": {
+                  "customer_id": {
+                    "type": "string",
+                    "description": "The UUID customer_id returned from get_customer_profile."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of all accounts and their balances.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "The unique account_id (UUID). Pass this to get_recent_transactions or financial action tools."
+                      },
+                      "account_type": { "type": "string" },
+                      "balance": { "type": "number" },
+                      "status": { "type": "string" },
+                      "sort_code": { "type": "string" },
+                      "account_number": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get_recent_transactions": {
+      "post": {
+        "summary": "Fetch recent transactions for a specific account",
+        "description": "Fetches the most recent transactions for a specific Aura Bank account ID. Use this to verify whether a customer was charged a specific amount by a specific merchant. Requires the account_id (UUID) from get_account_balances.",
+        "operationId": "get_recent_transactions",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["account_id"],
+                "properties": {
+                  "account_id": {
+                    "type": "string",
+                    "description": "The UUID account_id from get_account_balances."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of recent transactions to return. Defaults to 10.",
+                    "default": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of recent transactions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "amount": { "type": "number" },
+                      "merchant": { "type": "string" },
+                      "category": { "type": "string" },
+                      "transaction_date": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

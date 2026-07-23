@@ -1,0 +1,118 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Aura Bank Financial Action Group",
+    "description": "Provides the Resolution Agent with write access to execute state-mutating financial operations on Aura Bank accounts. These actions are irreversible and should only be performed after human approval has been confirmed for critical tickets.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/issue_refund": {
+      "post": {
+        "summary": "Issue a refund or goodwill credit to a customer account",
+        "description": "Credits a specified refund amount to a customer's bank account and logs the transaction. Only call this after human approval has been confirmed. Requires the account_id (UUID) from the get_account_balances tool and the exact positive refund amount in GBP.",
+        "operationId": "issue_refund",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["account_id", "amount"],
+                "properties": {
+                  "account_id": {
+                    "type": "string",
+                    "description": "The UUID account_id of the account to credit. Obtain this from get_account_balances."
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "The positive refund amount in GBP (e.g. 50.0). Must be greater than zero."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Refund issued successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "string",
+                      "description": "Confirmation message if the refund was applied successfully."
+                    },
+                    "new_balance": {
+                      "type": "number",
+                      "description": "The updated account balance after the refund."
+                    },
+                    "error": {
+                      "type": "string",
+                      "description": "Present only if the operation failed."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suspend_account_or_card": {
+      "post": {
+        "summary": "Suspend a customer's bank account or credit card",
+        "description": "Sets an Aura Bank account or credit card status to Suspended. Use this when a customer reports a lost or stolen card, or when active fraud is confirmed. This action is immediate and irreversible without manual reactivation by a support manager.",
+        "operationId": "suspend_account_or_card",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["account_id"],
+                "properties": {
+                  "account_id": {
+                    "type": "string",
+                    "description": "The UUID account_id of the account or card to suspend. Obtain this from get_account_balances."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account or card suspended successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "string",
+                      "description": "Confirmation message if the suspension was applied successfully."
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "account_type": { "type": "string" },
+                        "status": { "type": "string" }
+                      }
+                    },
+                    "error": {
+                      "type": "string",
+                      "description": "Present only if the operation failed."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
